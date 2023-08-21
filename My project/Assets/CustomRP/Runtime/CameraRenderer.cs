@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-public class CameraRenderer
+public partial class CameraRenderer
 {
     const string bufferName = "Render Camera";
 
@@ -18,10 +18,15 @@ public class CameraRenderer
 
     static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit");
 
-    public void Render(ScriptableRenderContext context,Camera camera)
+    public void Render(ScriptableRenderContext context,Camera camera,bool useDynamicBatching,bool useGPUInstancing)
     {
         this.context = context;
         this.camera = camera;
+        //设置命令缓冲区名字
+        PreparedBuffer();
+
+        //在Game视图绘制的几何体也绘制到Scene视图中
+        PrepareForSceneWindow();
 
         if (!Cull())
         {
@@ -30,8 +35,11 @@ public class CameraRenderer
 
         Setup();
 
-        DrawVisibleGeometry();
+        DrawVisibleGeometry(useDynamicBatching,useGPUInstancing);
 
+        DrawUnsupportedShaders();
+        //绘制Gizmos
+        DrawGizmos();
         Submit();
     }
     //存储剔除后的结果数据
@@ -52,19 +60,26 @@ public class CameraRenderer
     void Setup()
     {
         context.SetupCameraProperties(camera);
-        buffer.ClearRenderTarget(true, true, Color.clear);
-        buffer.BeginSample(bufferName);
+        //得到clear flags
+        CameraClearFlags flags = camera.clearFlags;
+        //设置相机清楚状态
+        buffer.ClearRenderTarget(flags <= CameraClearFlags.Depth, flags == CameraClearFlags.Color, flags == CameraClearFlags.Color ? camera.backgroundColor.linear : Color.clear);
+        buffer.BeginSample(SampleName);
         ExecuteBuffer();
     }
 
-    void DrawVisibleGeometry()
+    void DrawVisibleGeometry(bool useDynamicBatching,bool useGPUInstancing)
     {
         //设置绘制顺序和制定渲染相机
         var sortingSettings = new SortingSettings(camera)
         {
             criteria = SortingCriteria.CommonOpaque
         };
-        var drawingSettings = new DrawingSettings(unlitShaderTagId,sortingSettings);
+        var drawingSettings = new DrawingSettings(unlitShaderTagId, sortingSettings)
+        {
+            enableDynamicBatching= useDynamicBatching,
+            enableInstancing= useGPUInstancing
+        };
 
         var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
         //1.绘制不透明物体
@@ -80,7 +95,7 @@ public class CameraRenderer
 
     void Submit()
     {
-        buffer.EndSample(bufferName);
+        buffer.EndSample(SampleName);
         ExecuteBuffer();
         context.Submit();
     }
