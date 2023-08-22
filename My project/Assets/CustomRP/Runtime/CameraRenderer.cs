@@ -18,6 +18,8 @@ public partial class CameraRenderer
 
     static ShaderTagId unlitShaderTagId = new ShaderTagId("SRPDefaultUnlit");
 
+    static ShaderTagId litShaderTagId = new ShaderTagId("CustomLit");
+    Lighting lighting = new Lighting();
     public void Render(ScriptableRenderContext context,Camera camera,bool useDynamicBatching,bool useGPUInstancing)
     {
         this.context = context;
@@ -34,7 +36,7 @@ public partial class CameraRenderer
         }
 
         Setup();
-
+        lighting.Setup(context,cullingResults);
         DrawVisibleGeometry(useDynamicBatching,useGPUInstancing);
 
         DrawUnsupportedShaders();
@@ -75,12 +77,15 @@ public partial class CameraRenderer
         {
             criteria = SortingCriteria.CommonOpaque
         };
+        //设置渲染的shader pass和渲染排序
         var drawingSettings = new DrawingSettings(unlitShaderTagId, sortingSettings)
         {
+            //设置渲染时批处理的使用状态
             enableDynamicBatching= useDynamicBatching,
             enableInstancing= useGPUInstancing
         };
-
+        //渲染CustomLit表示的pass块
+        drawingSettings.SetShaderPassName(1, litShaderTagId);
         var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
         //1.绘制不透明物体
         context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
