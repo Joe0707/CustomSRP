@@ -20,39 +20,44 @@ public partial class CameraRenderer
 
     static ShaderTagId litShaderTagId = new ShaderTagId("CustomLit");
     Lighting lighting = new Lighting();
-    public void Render(ScriptableRenderContext context,Camera camera,bool useDynamicBatching,bool useGPUInstancing)
+    public void Render(ScriptableRenderContext context,Camera camera,bool useDynamicBatching,bool useGPUInstancing,ShadowSettings shadowSettings)
     {
         this.context = context;
         this.camera = camera;
-        //设置命令缓冲区名字
+        //设置buffer缓冲区的名字
         PreparedBuffer();
 
         //在Game视图绘制的几何体也绘制到Scene视图中
         PrepareForSceneWindow();
 
-        if (!Cull())
+        if (!Cull(shadowSettings.maxDistance))
         {
             return;
         }
-
+        buffer.BeginSample(SampleName);
+        ExecuteBuffer();
+        lighting.Setup(context,cullingResults,shadowSettings);
+        buffer.EndSample(SampleName);
         Setup();
-        lighting.Setup(context,cullingResults);
         DrawVisibleGeometry(useDynamicBatching,useGPUInstancing);
 
         DrawUnsupportedShaders();
         //绘制Gizmos
         DrawGizmos();
+        lighting.Cleanup();
         Submit();
     }
-    //存储剔除后的结果数据
+    //存储相机剔除后的结果
     CullingResults cullingResults;
 
-    bool Cull()
+    bool Cull(float maxShadowDistance)
     {
         ScriptableCullingParameters p;
 
         if(camera.TryGetCullingParameters(out p))
         {
+            //得到最大阴影距离,和相机远界面作比较，取最小的那个作为阴影距离
+            p.shadowDistance = Mathf.Min(maxShadowDistance, camera.farClipPlane);
             cullingResults = context.Cull(ref p);
             return true;
         }
@@ -62,9 +67,9 @@ public partial class CameraRenderer
     void Setup()
     {
         context.SetupCameraProperties(camera);
-        //得到clear flags
+        //得到相机的clear flags
         CameraClearFlags flags = camera.clearFlags;
-        //设置相机清楚状态
+        //设置相机清除状态
         buffer.ClearRenderTarget(flags <= CameraClearFlags.Depth, flags == CameraClearFlags.Color, flags == CameraClearFlags.Color ? camera.backgroundColor.linear : Color.clear);
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
@@ -72,7 +77,7 @@ public partial class CameraRenderer
 
     void DrawVisibleGeometry(bool useDynamicBatching,bool useGPUInstancing)
     {
-        //设置绘制顺序和制定渲染相机
+        //设置绘制顺序和指定渲染相机
         var sortingSettings = new SortingSettings(camera)
         {
             criteria = SortingCriteria.CommonOpaque

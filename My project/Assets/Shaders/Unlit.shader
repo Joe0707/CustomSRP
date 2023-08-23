@@ -31,4 +31,5 @@ Shader "CustomRP/Unlit"
         }
 
     }
+    CustomEditor "CustomShaderGUI"
 }

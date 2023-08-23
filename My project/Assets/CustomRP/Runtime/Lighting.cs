@@ -12,7 +12,7 @@ public class Lighting
     {
         name = bufferName
     };
-    //限制最大可见平行光数量为4
+    //设置最大可见定向光数量
     const int maxDirLightCount = 4;
 
     //static int dirLightColorId = Shader.PropertyToID("_DirectionalLightColor");
@@ -21,39 +21,42 @@ public class Lighting
     static int dirLightCountId = Shader.PropertyToID("_DirectionalLightCount");
     static int dirLightColorsId = Shader.PropertyToID("_DirectionalLightColors");
     static int dirLightDirectionsId = Shader.PropertyToID("_DirectionalLightDirections");
-    //存储可见光的颜色和方向
+    //存储定向光的颜色和方向
     static Vector4[] dirLightColors = new Vector4[maxDirLightCount];
     static Vector4[] dirLightDirections = new Vector4[maxDirLightCount];
 
 
     CullingResults cullingResults;
 
-
-    public void Setup(ScriptableRenderContext context, CullingResults cullingResults)
+    private Shadows shadows = new Shadows();
+    public void Setup(ScriptableRenderContext context, CullingResults cullingResults,ShadowSettings shadowSettings)
     {
         this.cullingResults = cullingResults;
         buffer.BeginSample(bufferName);
-        //发送光源数据
+        //传递阴影数据
+        shadows.Setup(context,cullingResults,shadowSettings);
         //SetupDirectionalLight();
+        //发送光源数据
         SetupLights();
+        shadows.Render();
         buffer.EndSample(bufferName);
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
     }
-    //发送多个光源数据
+    //存储并发送所有光源数据
     void SetupLights()
     {
-        //得到所有可见光
+        //得到所有影响相机渲染物体的可见光数据
         NativeArray<VisibleLight> visibleLights = cullingResults.visibleLights;
 
         int dirLightCount = 0;
         for(int i =0;i<visibleLights.Length;i++)
         {
             VisibleLight visibleLight = visibleLights[i];
-            //如果是方向光,我们才进行数据存储
+
             if(visibleLight.lightType == LightType.Directional)
             {
-                //VisibleLight结果很大，我们改为传递引用不是传递值，这样不会生成副本
+                //VisibleLight结构很大,我们改为传递引用不是传递值，这样不会生成副本
                 SetupDirectionalLight(dirLightCount++, ref visibleLight);
                 //当超过灯光限制数量中止循环
                 if(dirLightCount >= maxDirLightCount)
@@ -68,10 +71,17 @@ public class Lighting
         buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirections);
     }
     
-    //将场景主光照颜色和方向传递到GPU
+    //存储定向光的数据
     void SetupDirectionalLight(int index, ref VisibleLight visibleLight)
     {
         dirLightColors[index] = visibleLight.finalColor;
         dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
+        shadows.ReserveDirectionalShadows(visibleLight.light,index);
+    }
+    
+    //释放阴影贴图RT内存
+    public void Cleanup()
+    {
+        shadows.Cleanup();
     }
 }
