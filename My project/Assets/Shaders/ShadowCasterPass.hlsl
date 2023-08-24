@@ -27,7 +27,7 @@ struct Varyings {
 };
 
 //顶点函数
-Varyings LitPassVertex(Attributes input)
+Varyings ShadowCasterPassVertex(Attributes input)
 {
 	Varyings output;
 	UNITY_SETUP_INSTANCE_ID(input);
@@ -41,7 +41,7 @@ Varyings LitPassVertex(Attributes input)
 	return output;
 }
 //片元函数
-void LitPassFragment(Varyings input)
+void ShadowCasterPassFragment(Varyings input)
 {
 	UNITY_SETUP_INSTANCE_ID(input);
 float4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.baseUV);
