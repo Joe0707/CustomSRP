@@ -3,6 +3,7 @@
 #define CUSTOM_LIT_PASS_INCLUDED
 #include "../ShaderLibrary/Common.hlsl"
 #include "../ShaderLibrary/Surface.hlsl"
+#include "../ShaderLibrary/Shadows.hlsl"
 #include "../ShaderLibrary/Light.hlsl"
 #include "../ShaderLibrary/BRDF.hlsl"
 #include "../ShaderLibrary/Lighting.hlsl"
@@ -71,6 +72,7 @@ clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));
 #endif
 	//定义一个Surface并填充属性
     Surface surface;
+	surface.position = input.positionWS;
     surface.normal = normalize(input.normalWS);
 	//得到视角方向
 	surface.viewDirection = normalize(_WorldSpaceCameraPos - input.positionWS);

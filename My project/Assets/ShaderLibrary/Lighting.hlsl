@@ -4,7 +4,7 @@
 //计算入射光照
 float3 IncomingLight(Surface surface, Light light)
 {
-    return saturate(dot(surface.normal, light.direction)) * light.color;
+    return saturate(dot(surface.normal, light.direction)*light.attenuation) * light.color;
 }
 //入射光照诚意表面颜色，得到最终的照明颜色
 float3 GetLighting(Surface surface,BRDF brdf,Light light)
@@ -18,8 +18,7 @@ float3 GetLighting(Surface surface,BRDF brdf)
     float3 color = 0.0;
     for (int i = 0; i < GetDirectionalLightCount(); i++)
     {
-        color += GetLighting(surface,brdf, GetDirectionalLight(i));
-
+        color += GetLighting(surface,brdf, GetDirectionalLight(i,surface));
     }
     return color;
 }

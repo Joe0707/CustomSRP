@@ -3,6 +3,8 @@
 #define CUSTOM_SURFACE_INCLUDED
 struct Surface
 {
+    //±Ì√ÊŒª÷√
+    float3 position;
     float3 normal;
     float3 color;
     float alpha;
