@@ -76,6 +76,8 @@ clip(base.a - UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Cutoff));
     surface.normal = normalize(input.normalWS);
 	//得到视角方向
 	surface.viewDirection = normalize(_WorldSpaceCameraPos - input.positionWS);
+	//获取表面深度
+	surface.depth = -TransformWorldToView(input.positionWS).z;
     surface.color = base.rgb;
     surface.alpha = base.a;
     surface.metallic = UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial, _Metallic);

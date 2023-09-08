@@ -15,8 +15,16 @@
 #define UNITY_MATRIX_P glstate_matrix_projection
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
+
 float Square(float v)
 {
     return v * v;
 }
+
+//计算两点间距离的平方
+float DistanceSquared(float3 pA, float3 pB)
+{
+    return dot(pA - pB, pA - pB);
+}
+
 #endif
