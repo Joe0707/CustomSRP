@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Encoding" addBOMForNewFiles="with BOM under Windows, with no BOM otherwise">
+    <file url="file://$PROJECT_DIR$/Assets/CustomRP/Runtime/CameraRenderer.Editor.cs" charset="GBK" />
     <file url="file://$PROJECT_DIR$/Assets/CustomRP/Runtime/CameraRenderer.cs" charset="GBK" />
     <file url="file://$PROJECT_DIR$/Assets/CustomRP/Runtime/Shadows.cs" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/Assets/ShaderLibrary/Light.hlsl" charset="GBK" />
     <file url="file://$PROJECT_DIR$/Assets/Shaders/Lit.shader" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/Assets/Shaders/LitPass.hlsl" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/Assets/Shaders/TestKeyword/TestKeyword.shader" charset="GBK" />
     <file url="PROJECT" charset="GBK" />
   </component>
 </project>

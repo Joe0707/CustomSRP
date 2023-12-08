@@ -11,7 +11,7 @@ public partial class CameraRenderer
     {
         name = bufferName
     };
-    
+
     ScriptableRenderContext context;
 
     Camera camera;
@@ -20,7 +20,9 @@ public partial class CameraRenderer
 
     static ShaderTagId litShaderTagId = new ShaderTagId("CustomLit");
     Lighting lighting = new Lighting();
-    public void Render(ScriptableRenderContext context,Camera camera,bool useDynamicBatching,bool useGPUInstancing,ShadowSettings shadowSettings)
+
+    public void Render(ScriptableRenderContext context, Camera camera, bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject,
+        ShadowSettings shadowSettings)
     {
         this.context = context;
         this.camera = camera;
@@ -34,12 +36,13 @@ public partial class CameraRenderer
         {
             return;
         }
+
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
-        lighting.Setup(context,cullingResults,shadowSettings);
+        lighting.Setup(context, cullingResults, shadowSettings,useLightsPerObject);
         buffer.EndSample(SampleName);
         Setup();
-        DrawVisibleGeometry(useDynamicBatching,useGPUInstancing);
+        DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject);
 
         DrawUnsupportedShaders();
         //绘制Gizmos
@@ -47,6 +50,7 @@ public partial class CameraRenderer
         lighting.Cleanup();
         Submit();
     }
+
     //存储相机剔除后的结果
     CullingResults cullingResults;
 
@@ -54,13 +58,14 @@ public partial class CameraRenderer
     {
         ScriptableCullingParameters p;
 
-        if(camera.TryGetCullingParameters(out p))
+        if (camera.TryGetCullingParameters(out p))
         {
             //得到最大阴影距离,和相机远界面作比较，取最小的那个作为阴影距离
             p.shadowDistance = Mathf.Min(maxShadowDistance, camera.farClipPlane);
             cullingResults = context.Cull(ref p);
             return true;
         }
+
         return false;
     }
 
@@ -70,13 +75,17 @@ public partial class CameraRenderer
         //得到相机的clear flags
         CameraClearFlags flags = camera.clearFlags;
         //设置相机清除状态
-        buffer.ClearRenderTarget(flags <= CameraClearFlags.Depth, flags == CameraClearFlags.Color, flags == CameraClearFlags.Color ? camera.backgroundColor.linear : Color.clear);
+        buffer.ClearRenderTarget(flags <= CameraClearFlags.Depth, flags == CameraClearFlags.Color,
+            flags == CameraClearFlags.Color ? camera.backgroundColor.linear : Color.clear);
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
     }
 
-    void DrawVisibleGeometry(bool useDynamicBatching,bool useGPUInstancing)
+    void DrawVisibleGeometry(bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject)
     {
+        PerObjectData lightsPerObjectFlags =
+            useLightsPerObject ? PerObjectData.LightData | PerObjectData.LightIndices : PerObjectData.None;
+        
         //设置绘制顺序和指定渲染相机
         var sortingSettings = new SortingSettings(camera)
         {
@@ -86,8 +95,9 @@ public partial class CameraRenderer
         var drawingSettings = new DrawingSettings(unlitShaderTagId, sortingSettings)
         {
             //设置渲染时批处理的使用状态
-            enableDynamicBatching= useDynamicBatching,
-            enableInstancing= useGPUInstancing
+            enableDynamicBatching = useDynamicBatching,
+            enableInstancing = useGPUInstancing,
+            perObjectData = PerObjectData.Lightmaps |PerObjectData.ShadowMask| PerObjectData.LightProbe |PerObjectData.OcclusionProbe| PerObjectData.LightProbeProxyVolume|PerObjectData.OcclusionProbeProxyVolume|PerObjectData.ReflectionProbes|lightsPerObjectFlags
         };
         //渲染CustomLit表示的pass块
         drawingSettings.SetShaderPassName(1, litShaderTagId);
@@ -115,5 +125,4 @@ public partial class CameraRenderer
         context.ExecuteCommandBuffer(buffer);
         buffer.Clear();
     }
-
 }
