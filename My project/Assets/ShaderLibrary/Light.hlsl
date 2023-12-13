@@ -9,7 +9,7 @@ int _DirectionalLightCount;
 float4 _DirectionalLightColors[MAX_DIRECTIONAL_LIGHT_COUNT];
 float4 _DirectionalLightDirections[MAX_DIRECTIONAL_LIGHT_COUNT];
 float4 _DirectionalLightShadowData[MAX_DIRECTIONAL_LIGHT_COUNT];
-//非定向光源的属性
+//?????????????
 int _OtherLightCount;
 float4 _OtherLightColors[MAX_OTHER_LIGHT_COUNT];
 float4 _OtherLightPositions[MAX_OTHER_LIGHT_COUNT];
@@ -25,7 +25,6 @@ struct Light
     float attenuation;
 };
 
-//获取其他类型光源的阴影数据
 OtherShadowData GetOtherShadowData(int lightIndex)
 {
     OtherShadowData data;
@@ -34,6 +33,8 @@ OtherShadowData GetOtherShadowData(int lightIndex)
     data.shadowMaskChannel = _OtherLightShadowData[lightIndex].w;
     data.lightPositionWS = 0.0;
     data.spotDirectionWS = 0.0;
+    data.isPoint = _OtherLightShadowData[lightIndex].z == 1.0;
+    data.lightDirectionWS = 0.0;
     return data;
 }
 
@@ -45,16 +46,14 @@ Light GetOtherLight(int index, Surface surfaceWS, ShadowData shadowData)
     float3 ray = position - surfaceWS.position;
     light.direction = normalize(ray);
     float distanceSqr = max(dot(ray,ray),0.00001);
-    //套用公式计算随光照范围衰减值
     float rangeAttenuation = Square(saturate(1.0-Square(distanceSqr*_OtherLightPositions[index].w)));
     float4 spotAngles = _OtherLightSpotAngles[index];
     float3 spotDirection = _OtherLightDirections[index].xyz;
-    //得到聚光等衰减
     float spotAttenuation = Square(saturate(dot(spotDirection,light.direction)*spotAngles.x+spotAngles.y)) ;
     OtherShadowData otherShadowData = GetOtherShadowData(index);
     otherShadowData.lightPositionWS = position;
+    otherShadowData.lightDirectionWS = light.direction;
     otherShadowData.spotDirectionWS = spotDirection;
-    //光照强度随范围和距离衰减
     light.attenuation = GetOtherShadowAttenuation(otherShadowData,shadowData,surfaceWS) * spotAttenuation * rangeAttenuation / distanceSqr;
     return light;
 }
@@ -71,7 +70,7 @@ DirectionalShadowData GetDirectionalShadowData(int lightIndex, ShadowData shadow
     return data;
 }
 
-//获取非定向光源的数量
+//????????????????
 int GetOtherLightCount()
 {
     return _OtherLightCount;
