@@ -9,15 +9,19 @@ public partial class CustomRenderPipeline : RenderPipeline
     bool useDynamicBatching, useGPUInstancing;
     private ShadowSettings shadowSettings;
     private bool useLightsPerObject;
-    public CustomRenderPipeline(bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,bool useLightsPerObject,
-        ShadowSettings shadowSettings)
+    private PostFXSettings postFXSettings;
+    private bool allowHDR;
+    public CustomRenderPipeline(bool allowHDR,bool useDynamicBatching, bool useGPUInstancing, bool useSRPBatcher,bool useLightsPerObject,
+        ShadowSettings shadowSettings,PostFXSettings postFXSettings)
     {
+        this.allowHDR = allowHDR;
         this.shadowSettings = shadowSettings;
+        this.postFXSettings = postFXSettings;
         this.useDynamicBatching = useDynamicBatching;
         this.useGPUInstancing = useGPUInstancing;
         this.useLightsPerObject = useLightsPerObject;
         GraphicsSettings.useScriptableRenderPipelineBatching = useSRPBatcher;
-        //灯光使用线性强度
+
         GraphicsSettings.lightsUseLinearIntensity = true;
         InitializeForEditor();
     }
@@ -26,7 +30,7 @@ public partial class CustomRenderPipeline : RenderPipeline
     {
         foreach (var camera in cameras)
         {
-            renderer.Render(context, camera, useDynamicBatching, useGPUInstancing, useLightsPerObject,shadowSettings);
+            renderer.Render(context, camera,allowHDR, useDynamicBatching, useGPUInstancing, useLightsPerObject,shadowSettings,postFXSettings);
         }
     }
 }

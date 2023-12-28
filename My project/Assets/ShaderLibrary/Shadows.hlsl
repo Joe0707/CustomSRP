@@ -15,7 +15,7 @@
 #endif
 
 #if defined(_OTHER_PCF3)
-	#define OTHER_FILTER_SAMPLES 4
+	#define OTHER_FILTER_SAMPLES 4Post
 	#define OTHER_FILTER_SETUP SampleShadow_ComputeSamples_Tent_3x3
 #elif defined(_OTHER_PCF5)
 	#define OTHER_FILTER_SAMPLES 9

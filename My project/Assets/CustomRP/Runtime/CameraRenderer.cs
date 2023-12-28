@@ -21,15 +21,15 @@ public partial class CameraRenderer
     static ShaderTagId litShaderTagId = new ShaderTagId("CustomLit");
     Lighting lighting = new Lighting();
 
-    public void Render(ScriptableRenderContext context, Camera camera, bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject,
-        ShadowSettings shadowSettings)
+    private PostFXStack postFXStack = new PostFXStack();
+    private bool useHDR;
+    public void Render(ScriptableRenderContext context, Camera camera,bool allowHDR, bool useDynamicBatching, bool useGPUInstancing,bool useLightsPerObject,
+        ShadowSettings shadowSettings,PostFXSettings postFXSettings)
     {
         this.context = context;
         this.camera = camera;
-        //设置buffer缓冲区的名字
         PreparedBuffer();
 
-        //在Game视图绘制的几何体也绘制到Scene视图中
         PrepareForSceneWindow();
 
         if (!Cull(shadowSettings.maxDistance))
@@ -37,21 +37,41 @@ public partial class CameraRenderer
             return;
         }
 
+        useHDR = allowHDR && camera.allowHDR;
         buffer.BeginSample(SampleName);
         ExecuteBuffer();
         lighting.Setup(context, cullingResults, shadowSettings,useLightsPerObject);
+        postFXStack.Setup(context,camera,postFXSettings,useHDR);
         buffer.EndSample(SampleName);
         Setup();
         DrawVisibleGeometry(useDynamicBatching, useGPUInstancing,useLightsPerObject);
 
         DrawUnsupportedShaders();
-        //绘制Gizmos
-        DrawGizmos();
-        lighting.Cleanup();
+        
+        DrawGizmosBeforeFX();
+
+        if (postFXStack.IsActive)
+        {
+            postFXStack.Render(frameBufferId);
+        }
+        
+        DrawGizmosAfterFX();
+        
+        Cleanup();
         Submit();
     }
 
-    //存储相机剔除后的结果
+    void Cleanup()
+    {
+        lighting.Cleanup();
+
+        if (postFXStack.IsActive)
+        {
+            buffer.ReleaseTemporaryRT(frameBufferId);
+        }
+    }
+    
+    //?洢???????????
     CullingResults cullingResults;
 
     bool Cull(float maxShadowDistance)
@@ -60,7 +80,7 @@ public partial class CameraRenderer
 
         if (camera.TryGetCullingParameters(out p))
         {
-            //得到最大阴影距离,和相机远界面作比较，取最小的那个作为阴影距离
+            //?????????????,???????????????????С???????????????
             p.shadowDistance = Mathf.Min(maxShadowDistance, camera.farClipPlane);
             cullingResults = context.Cull(ref p);
             return true;
@@ -68,13 +88,24 @@ public partial class CameraRenderer
 
         return false;
     }
+    static int frameBufferId = Shader.PropertyToID("_CameraFrameBuffer");
 
     void Setup()
     {
         context.SetupCameraProperties(camera);
         //得到相机的clear flags
         CameraClearFlags flags = camera.clearFlags;
-        //设置相机清除状态
+    
+        if (postFXStack.IsActive)
+        {
+            if (flags > CameraClearFlags.Color)
+            {
+                flags = CameraClearFlags.Color;
+            }
+            buffer.GetTemporaryRT(frameBufferId,camera.pixelWidth,camera.pixelHeight,32,FilterMode.Bilinear,useHDR?RenderTextureFormat.DefaultHDR:RenderTextureFormat.Default);
+            buffer.SetRenderTarget(frameBufferId,RenderBufferLoadAction.DontCare,RenderBufferStoreAction.Store);
+        }
+        
         buffer.ClearRenderTarget(flags <= CameraClearFlags.Depth, flags == CameraClearFlags.Color,
             flags == CameraClearFlags.Color ? camera.backgroundColor.linear : Color.clear);
         buffer.BeginSample(SampleName);
@@ -86,30 +117,30 @@ public partial class CameraRenderer
         PerObjectData lightsPerObjectFlags =
             useLightsPerObject ? PerObjectData.LightData | PerObjectData.LightIndices : PerObjectData.None;
         
-        //设置绘制顺序和指定渲染相机
+        //????????????????????
         var sortingSettings = new SortingSettings(camera)
         {
             criteria = SortingCriteria.CommonOpaque
         };
-        //设置渲染的shader pass和渲染排序
+        //?????????shader pass?????????
         var drawingSettings = new DrawingSettings(unlitShaderTagId, sortingSettings)
         {
-            //设置渲染时批处理的使用状态
+            //?????????????????????
             enableDynamicBatching = useDynamicBatching,
             enableInstancing = useGPUInstancing,
             perObjectData = PerObjectData.Lightmaps |PerObjectData.ShadowMask| PerObjectData.LightProbe |PerObjectData.OcclusionProbe| PerObjectData.LightProbeProxyVolume|PerObjectData.OcclusionProbeProxyVolume|PerObjectData.ReflectionProbes|lightsPerObjectFlags
         };
-        //渲染CustomLit表示的pass块
+        //???CustomLit?????pass??
         drawingSettings.SetShaderPassName(1, litShaderTagId);
         var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
-        //1.绘制不透明物体
+        //1.????????????
         context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
-        //2.绘制天空盒
+        //2.????????
         context.DrawSkybox(camera);
         sortingSettings.criteria = SortingCriteria.CommonTransparent;
         drawingSettings.sortingSettings = sortingSettings;
         filteringSettings.renderQueueRange = RenderQueueRange.transparent;
-        //3.绘制透明物体
+        //3.???????????
         context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
     }
 
