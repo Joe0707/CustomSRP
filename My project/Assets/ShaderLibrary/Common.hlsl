@@ -16,6 +16,45 @@
 #endif
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
+
+SAMPLER(sampler_linear_clamp);
+SAMPLER(sampler_point_clamp);
+
+//????unity_OrghoParams??W??????0????1?§Ø?????????????????
+bool IsOrthographicCamera()
+{
+    return unity_OrthoParams.w;
+}
+
+float OrthographicDepthBufferToLinear(float rawDepth)
+{
+    #if UNITY_ERVERSED_Z
+    rawDepth = 1.0 - rawDepth;
+    #endif
+    return (_ProjectionParams.z - _ProjectionParams.y) * rawDepth + _ProjectionParams.y;
+}
+
+#include "Fragment.hlsl"
+
+//????????????????????????
+float3 NormalTangentToWorld(float3 normalTS,float3 normalWS,float4 tangentWS)
+{
+    //?????????????????????????????????????????????????XYZ??W????
+    float3x3 tangentToWorld = CreateTangentToWorld(normalWS,tangentWS.xyz,tangentWS.w);
+    return TransformTangentToWorld(normalTS,tangentToWorld);
+}
+
+
+//??????????????????????????
+float3 DecodeNormal(float4 sample,float scale)
+{
+    #if defined(UNITY_NO_DXT5nm)
+        return UnpackNormalRGB(sample,scale);
+    #else
+        return UnpackNormalmapRGorAG(sample,scale);
+    #endif
+}
 
 float Square(float v)
 {
@@ -28,10 +67,10 @@ float DistanceSquared(float3 pA, float3 pB)
     return dot(pA - pB, pA - pB);
 }
 
-void ClipLOD(float2 positionCS, float fade)
+void ClipLOD(Fragment fragment, float fade)
 {
     #if defined(LOD_FADE_CROSSFADE)
-        float dither = InterleavedGradientNoise(positionCS.xy,0);
+        float dither = InterleavedGradientNoise(fragment.positionSS,0);
         clip(fade+(fade<0.0?dither:-dither));
     #endif
 }

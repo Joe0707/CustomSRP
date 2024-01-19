@@ -12,8 +12,10 @@ struct Attributes
 {
     float3 positionOS : POSITION;
     float2 baseUV : TEXCOORD0;
-    //???淨??
+    //????Q??
     float3 normalOS : NORMAL;
+    //对象空间的切线
+    float4 tangentOS :TANGENT;
     GI_ATTRIBUTE_DATA
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -21,11 +23,18 @@ struct Attributes
 //?????????????
 struct Varyings
 {
-    float4 positionCS : SV_POSITION;
+    float4 positionCS_SS : SV_POSITION;
     float3 positionWS : VAR_POSITION;
-    float2 baseUV:VAR_BASE_UV;
-    //???編??
+    float2 baseUV : VAR_BASE_UV;
+    #if defined(_DETAIL_MAP)
+    float2 detailUV : VAR_DETAIL_UV;
+    #endif
+    //???????
     float3 normalWS : VAR_NORMAL;
+    #if defined(_NORMAL_MAP)
+    //世界空间的切线
+    float4 tangentWS : VAR_TANGENT;
+    #endif
     GI_VARYINGS_DATA
     UNITY_VERTEX_INPUT_INSTANCE_ID
 };
@@ -38,11 +47,18 @@ Varyings LitPassVertex(Attributes input)
     UNITY_TRANSFER_INSTANCE_ID(input, output);
     TRANSFER_GI_DATA(input, output);
     output.positionWS = TransformObjectToWorld(input.positionOS);
-    output.positionCS = TransformWorldToHClip(output.positionWS);
+    output.positionCS_SS = TransformWorldToHClip(output.positionWS);
     //??????????????
     output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+    #if defined(_NORMAL_MAP)
+    //计算世界空间的切线
+    output.tangentWS = float4(TransformObjectToWorldDir(input.tangentOS.xyz), input.tangentOS.w);
+    #endif
     //??????????????UV????
     output.baseUV = TransformBaseUV(input.baseUV);
+    #if defined(_DETAIL_MAP)
+    output.detailUV = TransformDetailUV(input.baseUV);
+    #endif
     return output;
 }
 
@@ -50,40 +66,54 @@ Varyings LitPassVertex(Attributes input)
 float4 LitPassFragment(Varyings input) : SV_TARGET
 {
     UNITY_SETUP_INSTANCE_ID(input);
-    ClipLOD(input.positionCS.xy,unity_LODFade.x);
-    float4 base = GetBase(input.baseUV);
+    // ClipLOD(input.positionCS.xy, unity_LODFade.x);
+    InputConfig config = GetInputConfig(input.positionCS_SS,input.baseUV);
+    ClipLOD(config.fragment, unity_LODFade.x);
+    #if defined(_DETAIL_MAP)
+    config.detailUV = input.detailUV;
+    config.useDetail = true;
+    #endif
+    #if defined(_MASK_MAP)
+    config.useMask = true;
+    #endif
+    float4 base = GetBase(config);
     #if defined(_CLIPPING)
     //???????????????????????
-    clip(base.a - GetCutoff(input.baseUV));
+    clip(base.a - GetCutoff(config));
     #endif
     //???????surface?????????
     Surface surface;
     surface.position = input.positionWS;
+    #if defined(_NORMAL_MAP)
+    surface.normal = NormalTangentToWorld(GetNormalTS(config), input.normalWS, input.tangentWS);
+    surface.interpolatedNormal = input.normalWS;
+    #else
     surface.normal = normalize(input.normalWS);
     surface.interpolatedNormal = surface.normal;
-
-    surface.normal = normalize(input.normalWS);
+    #endif
     //?????????
     surface.viewDirection = normalize(_WorldSpaceCameraPos - input.positionWS);
     //??????????
     surface.depth = -TransformWorldToView(input.positionWS).z;
     surface.color = base.rgb;
     surface.alpha = base.a;
-    surface.metallic = GetMetallic(input.baseUV);
-    surface.smoothness = GetSmoothness(input.baseUV);
-    surface.fresnelStrength = GetFresnel(input.baseUV);
+    surface.metallic = GetMetallic(config);
+    surface.smoothness = GetSmoothness(config);
+    surface.occlusion = GetOcclusion(config);
+    surface.fresnelStrength = GetFresnel(config);
     //???????
-    surface.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
+    surface.dither = InterleavedGradientNoise(config.fragment.positionSS, 0);
+    surface.renderingLayerMask = asuint(unity_RenderingLayer.x);
     #if defined(_PREMULTIPLY_ALPHA)
     BRDF brdf = GetBRDF(surface, true);
     #else
 	BRDF brdf = GetBRDF(surface);
     #endif
     //??????????????
-    GI gi = GetGI(GI_FRAGMENT_DATA(input), surface,brdf);
+    GI gi = GetGI(GI_FRAGMENT_DATA(input), surface, brdf);
     float3 color = GetLighting(surface, brdf, gi);
-    color += GetEmission(input.baseUV);
-    return float4(color, surface.alpha);
+    color += GetEmission(config);
+    return float4(color, GetFinalAlpha(surface.alpha));
 }
 
 

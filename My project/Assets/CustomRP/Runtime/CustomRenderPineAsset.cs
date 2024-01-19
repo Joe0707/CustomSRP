@@ -4,7 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Rendering;
 [CreateAssetMenu(menuName = "Rendering/CreateCustomRenderPipeline")]
-public class CustomRenderPineAsset : RenderPipelineAsset
+public partial class CustomRenderPineAsset : RenderPipelineAsset
 {
     //定义合批状态字段
     [SerializeField]
@@ -19,10 +19,26 @@ public class CustomRenderPineAsset : RenderPipelineAsset
 
     [SerializeField] private PostFXSettings postFXSettings = default;
     
-    //HDR设置
-    [SerializeField] private bool allowHDR = true;
+
+    [SerializeField] private CameraBufferSettings cameraBuffer = new CameraBufferSettings
+    {
+        allowHDR = true
+    };
+    
+    public enum ColorLUTResolution
+    {
+        _16 = 16,
+        _32 = 32,
+        _64 = 64
+    }
+    
+    //LUT分辨率
+    [SerializeField] private ColorLUTResolution colorLUTResolution = ColorLUTResolution._32;
+
+    [SerializeField] private Shader cameraRendererShader = default;
+    
     protected override RenderPipeline CreatePipeline()
     {
-        return new CustomRenderPipeline(allowHDR,useDynamicBatching,useGPUInstancing,useSRPBatcher,useLightsPerObject,shadows,postFXSettings);
+        return new CustomRenderPipeline(cameraBuffer,useDynamicBatching,useGPUInstancing,useSRPBatcher,useLightsPerObject,shadows,postFXSettings,(int)colorLUTResolution,cameraRendererShader);
     }
 }
