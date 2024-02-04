@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 using UnityEngine.Rendering;
 
 [Serializable]
@@ -9,4 +10,20 @@ public struct CameraBufferSettings
     public bool copyDepth;
 
     public bool copyDepthReflection;
+
+    public bool copyColor;
+
+    public bool copyColorReflection;
+    [Range(0.1f,2f)]
+    public float renderScale;
+
+    public enum BicubicRescalingMode
+    {
+        Off,
+        UpOnly,
+        UpAndDown
+    }
+
+    public BicubicRescalingMode bicubicRescaling;
+
 }

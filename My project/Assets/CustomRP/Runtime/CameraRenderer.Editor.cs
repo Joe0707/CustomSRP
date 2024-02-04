@@ -17,7 +17,7 @@ public partial class CameraRenderer
 
     partial void PreparedBuffer()
     {
-        //设置一下只有在编辑器模式下才分配内存
+        //??????????????????????????
         Profiler.BeginSample("Editor Only");
         buffer.name = SampleName = camera.name;
         Profiler.EndSample();
@@ -31,12 +31,12 @@ public partial class CameraRenderer
         new ShaderTagId("VertexLMRGBM"),
         new ShaderTagId("VertexLM"),
     };
-    //错误材质
+    //???????
     static Material errorMaterial;
 
     partial void DrawUnsupportedShaders()
     {
-        //不支持的ShaderTag类型我们使用错误材质专用Shader来渲染(粉色)
+        //??????ShaderTag????????????????????Shader?????(???)
         if (errorMaterial == null)
         {
             errorMaterial = new Material(Shader.Find("Hidden/InternalErrorShader"));
@@ -47,12 +47,12 @@ public partial class CameraRenderer
         };
         for (int i = 1; i < legacyShaderTagIds.Length; i++)
         {
-            //遍历数组逐个设置着色器的PassName，从i=1开始
+            //??????????????????????PassName????i=1???
             drawingSettings.SetShaderPassName(i, legacyShaderTagIds[i]);
         }
-        //使用默认设置即可，反正画出来的都是不支持的
+        //?????????ü????????????????????????
         var filteringSettings = FilteringSettings.defaultValue;
-        //绘制不支持的ShaderTag类型的物体
+        //?????????ShaderTag?????????
         context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
     }
 
@@ -69,6 +69,11 @@ public partial class CameraRenderer
     {
         if (Handles.ShouldRenderGizmos())
         {
+            if (useIntermediateBuffer)
+            {
+                Draw(depthAttachmentId,BuiltinRenderTextureType.CameraTarget,true);
+                ExecuteBuffer();
+            }
             context.DrawGizmos(camera,GizmoSubset.PreImageEffects);
         }
     }
@@ -87,8 +92,10 @@ public partial class CameraRenderer
     {
         if(camera.cameraType == CameraType.SceneView)
         {
-            //如果切换到了Scene视图，调用此方法完成绘制
+            //????л?????Scene???????????????????
             ScriptableRenderContext.EmitWorldGeometryForSceneView(camera);
+            //禁用渲染缩放
+            userScaleRendering = false;
         }
     }
 

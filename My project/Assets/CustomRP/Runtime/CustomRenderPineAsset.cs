@@ -22,7 +22,8 @@ public partial class CustomRenderPineAsset : RenderPipelineAsset
 
     [SerializeField] private CameraBufferSettings cameraBuffer = new CameraBufferSettings
     {
-        allowHDR = true
+        allowHDR = true,
+        renderScale = 1f
     };
     
     public enum ColorLUTResolution

@@ -3,6 +3,9 @@
 TEXTURE2D(_BaseMap);
 SAMPLER(sampler_BaseMap);
 
+TEXTURE2D(_DistortionMap);
+SAMPLER(sampler_DistortionMap);
+
 UNITY_INSTANCING_BUFFER_START(UnityPerMaterial)
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseMap_ST)
 UNITY_DEFINE_INSTANCED_PROP(float4, _BaseColor)
@@ -16,7 +19,8 @@ UNITY_DEFINE_INSTANCED_PROP(float, _NearFadeRange)
 
 UNITY_DEFINE_INSTANCED_PROP(float,_SoftParticlesDistance)
 UNITY_DEFINE_INSTANCED_PROP(float,_SoftParticlesRange)
-
+UNITY_DEFINE_INSTANCED_PROP(float,_DistortionStrength)
+UNITY_DEFINE_INSTANCED_PROP(float,_DistortionBlend)
 UNITY_INSTANCING_BUFFER_END(UnityPerMaterial)
 
 #define INPUT_PROP(name) UNITY_ACCESS_INSTANCED_PROP(UnityPerMaterial,name)
@@ -43,6 +47,21 @@ InputConfig GetInputConfig(float4 positionSS, float2 baseUV)
     c.nearFade = false;
     c.softParticles = false;
     return c;
+}
+
+float GetDistortionBlend(InputConfig c)
+{
+    return INPUT_PROP(_DistortionBlend);
+}
+
+float2 GetDistortion(InputConfig c)
+{
+    float4 rawMap = SAMPLE_TEXTURE2D(_DistortionMap,sampler_DistortionMap,c.baseUV);
+    if(c.flipbookBlending)
+    {
+        rawMap = lerp(rawMap,SAMPLE_TEXTURE2D(_DistortionMap,sampler_DistortionMap,c.flipbookUVB.xy),c.flipbookUVB.z);
+    }
+    return DecodeNormal(rawMap,INPUT_PROP(_DistortionStrength)).xy;
 }
 
 

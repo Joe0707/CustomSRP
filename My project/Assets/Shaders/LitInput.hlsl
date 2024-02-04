@@ -51,7 +51,7 @@ InputConfig GetInputConfig(float4 positionSS,float2 baseUV, float2 detailUV = 0.
 }
 
 
-//细节纹理UV变换
+//???????UV?任
 float2 TransformDetailUV(float2 detailUV)
 {
     float4 detailST = INPUT_PROP(_DetailMap_ST);
