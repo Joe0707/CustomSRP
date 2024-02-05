@@ -37,6 +37,15 @@ public partial class CustomRenderPipeline : RenderPipeline
         }
     }
 
+    protected override void Render(ScriptableRenderContext context, List<Camera> cameras)
+    {
+        for (int i = 0; i < cameras.Count; i++)
+        {
+            renderer.Render(context,cameras[i],cameraBufferSettings,useDynamicBatching,useGPUInstancing,useLightsPerObject,shadowSettings,postFXSettings,colorLUTResolution);
+        }
+    }
+    
+
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);

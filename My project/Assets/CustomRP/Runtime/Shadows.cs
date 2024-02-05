@@ -489,7 +489,7 @@ public class Shadows
     void RenderDirectionalShadows(int index, int split, int tileSize)
     {
         ShadowedDirectionalLight light = ShadowedDirectionalLights[index];
-        var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex)
+        var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex,BatchCullingProjectionType.Orthographic)
         {
             useRenderingLayerMaskTest = true
         };
@@ -528,7 +528,7 @@ public class Shadows
     void RenderDirectionalShadows(int index, int tileSize)
     {
         ShadowedDirectionalLight light = ShadowedDirectionalLights[index];
-        var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
+        var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex,BatchCullingProjectionType.Orthographic);
 
         cullingResults.ComputeDirectionalShadowMatricesAndCullingPrimitives(light.visibleLightIndex, 0, 1, Vector3.zero,
             tileSize, 0f,

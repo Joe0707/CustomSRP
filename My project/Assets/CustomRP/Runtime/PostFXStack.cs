@@ -314,7 +314,8 @@ public partial class PostFXStack
         {
             buffer.EnableShaderKeyword(fxaaQualityLowKeyword);
             buffer.DisableShaderKeyword(fxaaQualityMediumKeyword);
-        }else if (fxaa.quality == CameraBufferSettings.FXAA.Quality.Medium)
+        }
+        else if (fxaa.quality == CameraBufferSettings.FXAA.Quality.Medium)
         {
             buffer.DisableShaderKeyword(fxaaQualityLowKeyword);
             buffer.EnableShaderKeyword(fxaaQualityMediumKeyword);
@@ -324,9 +325,11 @@ public partial class PostFXStack
             buffer.DisableShaderKeyword(fxaaQualityLowKeyword);
             buffer.DisableShaderKeyword(fxaaQualityMediumKeyword);
         }
-        buffer.SetGlobalVector(fxaaConfigId, new Vector4(fxaa.fixedThreshold, fxaa.relativeThreshold,fxaa.subpixelBlending));
+
+        buffer.SetGlobalVector(fxaaConfigId,
+            new Vector4(fxaa.fixedThreshold, fxaa.relativeThreshold, fxaa.subpixelBlending));
     }
-    
+
     void DoFinal(int sourceId)
     {
         ConfigureColorAdjustments();
@@ -412,6 +415,8 @@ public partial class PostFXStack
     private int finalSrcBlendId = Shader.PropertyToID("_FinalSrcBlend");
     private int finalDstBlendId = Shader.PropertyToID("_FinalDstBlend");
 
+    private static Rect fullViewRect = new Rect(0f, 0f, 1f, 1f);
+
     void DrawFinal(
         RenderTargetIdentifier from, Pass pass
     )
@@ -422,7 +427,7 @@ public partial class PostFXStack
         buffer.SetGlobalTexture(fxSourceId, from);
         buffer.SetRenderTarget(
             BuiltinRenderTextureType.CameraTarget,
-            finalBlendMode.destination == BlendMode.Zero
+            finalBlendMode.destination == BlendMode.Zero && camera.rect == fullViewRect
                 ? RenderBufferLoadAction.DontCare
                 : RenderBufferLoadAction.Load, RenderBufferStoreAction.Store
         );
