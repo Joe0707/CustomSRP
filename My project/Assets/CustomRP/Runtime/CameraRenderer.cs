@@ -38,7 +38,7 @@ public partial class CameraRenderer
     private bool useColorTexture;
 
     private bool userScaleRendering;
-    //最终使用的缓冲区大小
+    //???????????????С
     private Vector2Int bufferSize;
 
     private static int bufferSizeId = Shader.PropertyToID("_CameraBufferSize");
@@ -82,7 +82,7 @@ public partial class CameraRenderer
             useDepthTexture = bufferSettings.copyDepth && cameraSettings.copyDepth;
         }
 
-        //????????????????????????????????????滻???????????????
+        //?????????????????????????????????????I???????????????
         if (cameraSettings.overridePostFX)
         {
             postFXSettings = cameraSettings.postFXSettings;
@@ -101,7 +101,7 @@ public partial class CameraRenderer
         }
 
         useHDR = bufferSettings.allowHDR && camera.allowHDR;
-        //按比例缩放相机屏幕像素尺寸
+        //??????????????????????
         if (userScaleRendering)
         {
             renderScale = Mathf.Clamp(renderScale, 0.1f, 2f);
@@ -120,7 +120,8 @@ public partial class CameraRenderer
         ExecuteBuffer();
         lighting.Setup(context, cullingResults, shadowSettings, useLightsPerObject,
             cameraSettings.maskLights ? cameraSettings.renderingLayerMask : -1);
-        postFXStack.Setup(context, camera,bufferSize, postFXSettings, useHDR, colorLUTResolution, cameraSettings.finalBlendMode,bufferSettings.bicubicRescaling);
+        bufferSettings.fxaa.enabled &= cameraSettings.allowFXAA;
+        postFXStack.Setup(context, camera,bufferSize, postFXSettings,cameraSettings.keepAlpha, useHDR, colorLUTResolution, cameraSettings.finalBlendMode,bufferSettings.bicubicRescaling,bufferSettings.fxaa);
         buffer.EndSample(SampleName);
         Setup();
         DrawVisibleGeometry(useDynamicBatching, useGPUInstancing, useLightsPerObject,
@@ -174,7 +175,7 @@ public partial class CameraRenderer
         buffer.DrawProcedural(Matrix4x4.identity, material, isDepth ? 1 : 0, MeshTopology.Triangles, 3);
     }
 
-    //拷贝深度数据
+    //???????????
     void CopyAttachments()
     {
         if (useColorTexture)
@@ -236,10 +237,10 @@ public partial class CameraRenderer
 
     private static int depthTextureId = Shader.PropertyToID("_CameraDepthTexture");
 
-    //是否正在使用深度纹理
+    //?????????????????
     private bool useDepthTexture;
 
-    //是否使用中间帧缓冲
+    //???????м??????
     private bool useIntermediateBuffer;
 
     void Setup()
